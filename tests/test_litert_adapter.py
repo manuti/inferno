@@ -307,6 +307,35 @@ def test_vision_probe_falls_back_to_text_only_engine(_mock_litert_lm):
         _mock_litert_lm.litert_lm.Engine = original_engine_cls
 
 
+def test_vision_probe_does_not_mask_unexpected_error(_mock_litert_lm):
+    """An unexpected failure during the vision probe (e.g. OOM) must propagate,
+    not be silently downgraded to a 'healthy' text-only engine."""
+    original_engine_cls = _mock_litert_lm.litert_lm.Engine
+
+    class _VisionOOMEngine:
+        def __init__(self, model_path="", backend=None, **kwargs):
+            # Vision init fails with OOM; text-only construction would succeed.
+            if "vision_backend" in kwargs:
+                raise MemoryError("OOM during vision init")
+            self.model_path = model_path
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            pass
+
+        def create_conversation(self, **kwargs):
+            return _FakeConversation()
+
+    _mock_litert_lm.litert_lm.Engine = _VisionOOMEngine
+    try:
+        with pytest.raises(MemoryError):
+            _mock_litert_lm._probe_vision_support("test.litertlm")
+    finally:
+        _mock_litert_lm.litert_lm.Engine = original_engine_cls
+
+
 def test_vision_probe_succeeds_when_engine_accepts_vision_backend(_mock_litert_lm):
     """_probe_vision_support returns (engine, True) when Engine accepts vision_backend."""
 

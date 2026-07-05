@@ -54,7 +54,13 @@ def _probe_vision_support(model_path: str) -> tuple[Any, bool]:
         )
         logger.info("LiteRT vision probe succeeded — multimodal enabled")
         return engine, True
-    except (TypeError, RuntimeError, Exception) as exc:
+    except (TypeError, RuntimeError) as exc:
+        # Expected "vision unsupported" signals only: TypeError when the
+        # installed litert-lm build lacks the vision_backend kwarg, RuntimeError
+        # when the runtime vision calculator is missing. Any other failure
+        # (OOM, missing shared library, corrupt model) is NOT a vision-support
+        # question — let it propagate so the engine is reported as failed rather
+        # than silently downgraded to a "healthy" text-only model.
         logger.info("LiteRT vision probe failed (%s) — text-only mode", exc)
         engine = litert_lm.Engine(model_path, backend=litert_lm.Backend.CPU)
         return engine, False

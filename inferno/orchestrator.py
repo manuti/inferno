@@ -34,7 +34,7 @@ from .runtime_manager import (
     discover_runtime_slots,
 )
 
-logger = logging.getLogger("potato")
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants

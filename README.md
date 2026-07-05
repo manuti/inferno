@@ -28,10 +28,13 @@ dicts, and callbacks — never a FastAPI `app.state`.
 
 > **Note on coupling.** The import boundary is clean, but Inferno still speaks
 > Potato's vocabulary: it reads `POTATO_*` environment variables (see below),
-> writes a `.potato-llama-runtime-bundle.json` marker, logs under the `potato`
-> logger name, and classifies hardware into Raspberry Pi device classes. A
-> consumer outside Potato OS must adopt these conventions. Decoupling the
-> naming is tracked in the issue list.
+> writes a `.potato-llama-runtime-bundle.json` marker, and classifies hardware
+> into Raspberry Pi device classes. A consumer outside Potato OS must adopt
+> these conventions.
+>
+> Logging is namespaced under the package's own `inferno.*` logger tree (each
+> module uses `logging.getLogger(__name__)`), so a host can capture all of
+> Inferno's logs by configuring the `inferno` logger.
 
 ---
 

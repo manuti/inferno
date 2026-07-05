@@ -371,11 +371,10 @@ def _llama_runtime_bundle_readme_fields(bundle_dir: Path) -> dict[str, str]:
 
 
 def _default_llama_runtime_bundle_roots(base_dir: Path) -> list[Path]:
-    return [
-        base_dir / "llama-bundles",
-        Path("/tmp/potato-qwen35-ab/references/old_reference_design/llama_cpp_binary"),
-        Path("/tmp/potato-os/references/old_reference_design/llama_cpp_binary"),
-    ]
+    # Only the product-managed bundle directory. Additional search roots must
+    # be supplied explicitly via POTATO_LLAMA_RUNTIME_BUNDLE_ROOTS rather than
+    # baked-in absolute paths.
+    return [base_dir / "llama-bundles"]
 
 
 def get_llama_runtime_bundle_roots(base_dir: Path) -> list[Path]:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -37,6 +38,7 @@ from inferno.runtime_manager import (
     build_llama_runtime_status,
     install_llama_runtime_bundle,
     ensure_compatible_runtime,
+    get_llama_runtime_bundle_roots,
 )
 
 
@@ -611,3 +613,27 @@ async def test_ensure_compatible_runtime_no_slot_available(tmp_path):
     switched, reason = await ensure_compatible_runtime(pi4_store)
     assert switched is False
     assert reason == "slot_unavailable"
+
+
+# -- Bundle root discovery --
+
+
+def test_default_bundle_roots_only_local_dir(tmp_path, monkeypatch):
+    """Without the env override, the only default root is base_dir/llama-bundles.
+    No hardcoded absolute /tmp paths should be probed."""
+    monkeypatch.delenv("POTATO_LLAMA_RUNTIME_BUNDLE_ROOTS", raising=False)
+    roots = get_llama_runtime_bundle_roots(tmp_path)
+    assert roots == [tmp_path / "llama-bundles"]
+    assert all("/tmp/potato" not in str(root) for root in roots)
+
+
+def test_bundle_roots_env_override(tmp_path, monkeypatch):
+    """The env override replaces the defaults and is de-duplicated in order."""
+    a = tmp_path / "a"
+    b = tmp_path / "b"
+    monkeypatch.setenv(
+        "POTATO_LLAMA_RUNTIME_BUNDLE_ROOTS",
+        os.pathsep.join([str(a), str(b), str(a)]),
+    )
+    roots = get_llama_runtime_bundle_roots(tmp_path)
+    assert roots == [a, b]

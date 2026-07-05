@@ -14,13 +14,14 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import json
+import logging
 import os
 import shutil
 import time
 from pathlib import Path
 from typing import Any
 
-logger = __import__("logging").getLogger("potato")
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants

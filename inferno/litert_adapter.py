@@ -23,7 +23,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-logger = logging.getLogger("litert_adapter")
+logger = logging.getLogger(__name__)
 
 try:
     import litert_lm  # type: ignore[import-untyped]

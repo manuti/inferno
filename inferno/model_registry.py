@@ -13,12 +13,13 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import logging
 import os
 import re
 from pathlib import Path
 from typing import Any
 
-logger = __import__("logging").getLogger("potato")
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants

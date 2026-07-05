@@ -125,7 +125,6 @@ def test_chat_completion_streaming_sse_chunks(client):
 
 def test_chat_completion_replays_user_turns_on_divergence(_mock_litert_lm, client):
     """On history divergence, user turns are replayed (assistant turns skipped)."""
-    conv = _mock_litert_lm._conversation
     response = client.post(
         "/v1/chat/completions",
         json={

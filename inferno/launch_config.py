@@ -71,6 +71,13 @@ def build_llama_server_args(
         args.append("--no-mmap")
 
     # Reasoning / chat template ------------------------------------------
+    # This is the server-launch *baseline* for chat_template_kwargs (default
+    # disables thinking). It applies to any request that does not carry its own
+    # chat_template_kwargs. Per-request enforcement for specific families lives
+    # in model_registry.apply_model_chat_defaults, which re-injects
+    # enable_thinking into a request's own chat_template_kwargs (which would
+    # otherwise replace this baseline). The two are complementary, not
+    # redundant: this sets the default, that one guards the override.
     args.extend(["--reasoning-format", reasoning_format])
     args.extend(["--chat-template-kwargs", chat_template_kwargs])
 

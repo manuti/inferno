@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 from typing import Any
@@ -14,7 +13,6 @@ import pytest
 from inferno.orchestrator import (
     READY_HEALTH_POLLS_REQUIRED,
     MAX_CONSECUTIVE_FAILURES,
-    InferenceTickResult,
     empty_readiness_state,
     empty_runtime_switch_state,
     reset_readiness,
@@ -567,7 +565,7 @@ async def test_tick_switch_in_progress_skips_spawn(tick_env, monkeypatch):
         return httpx.Response(500)
     monkeypatch.setattr(httpx.AsyncClient, "get", _fake_get)
 
-    result = await run_inference_tick(
+    await run_inference_tick(
         process=None, consecutive_failures=0,
         failure_model_key=str(tick_env["model_path"]), failure_runtime_key="ik_llama",
         readiness=empty_readiness_state(),

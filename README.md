@@ -110,6 +110,7 @@ turns — see the module docstring for the continuation/reset semantics.
 | `POTATO_FAKE_PREFILL_DELAY_MS` | `backend` | Override the fake backend's prefill delay (ms, clamped 0–60000). |
 | `POTATO_FAKE_STREAM_CHUNK_DELAY_MS` | `backend` | Override the fake backend's per-chunk stream delay (ms, clamped 0–60000). |
 | `POTATO_LLAMA_RUNTIME_BUNDLE_ROOTS` | `runtime_manager` | `os.pathsep`-separated list of directories to search for llama runtime bundles, overriding the built-in defaults. |
+| `POTATO_LLAMA_PROXY_READ_TIMEOUT_S` | `backend` | Optional read timeout (seconds) for the llama.cpp proxy. Unset/empty means unbounded (the default), since a slow device may legitimately take minutes per completion; set a positive value to bound a hung upstream. |
 
 ---
 
@@ -130,12 +131,14 @@ LiteRT is served by the standalone adapter app rather than through the manager.
 ## Testing
 
 ```bash
-python -m pytest -q            # run the suite
-python -m pytest -q -n auto    # parallel (as CI runs it)
+python -m ruff check inferno/ tests/   # lint
+python -m mypy inferno/                 # type-check
+python -m pytest -q                     # run the suite
+python -m pytest -q -n auto             # parallel (as CI runs it)
 ```
 
-CI (`.github/workflows/ci.yml`) installs the package and runs the test suite on
-Python 3.11.
+CI (`.github/workflows/ci.yml`) installs the package and runs ruff, mypy, and
+the test suite on Python 3.11, in that order.
 
 ---
 

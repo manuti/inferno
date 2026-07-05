@@ -142,18 +142,24 @@ def test_fake_reply_pool_has_ten_entries():
     assert len(backend.FAKE_PARODY_REPLIES) == 10
 
 
-def test_fake_content_uses_random_choice_for_reply(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(backend.random, "choice", lambda _items: "RANDOM_POTATO_REPLY")
+def test_fake_content_uses_a_parody_reply_when_no_seed():
     payload = {"messages": [{"role": "user", "content": "same prompt every time"}]}
     content = backend._fake_content(payload)
-    assert "RANDOM_POTATO_REPLY" in content
+    assert any(reply in content for reply in backend.FAKE_PARODY_REPLIES)
 
 
-def test_fake_content_is_deterministic_when_seed_is_provided(monkeypatch: pytest.MonkeyPatch):
-    def _random_choice_should_not_run(_items):
-        raise AssertionError("global random.choice should not be used for seeded fake replies")
+def test_fake_content_does_not_use_global_random_choice(monkeypatch: pytest.MonkeyPatch):
+    """Reply selection routes through a local Random, never the global RNG."""
+    def _global_choice_should_not_run(_items):
+        raise AssertionError("global random.choice must not be used for fake replies")
 
-    monkeypatch.setattr(backend.random, "choice", _random_choice_should_not_run)
+    monkeypatch.setattr(backend.random, "choice", _global_choice_should_not_run)
+    # Both unseeded and seeded paths must avoid the global choice.
+    backend._fake_content({"messages": [{"role": "user", "content": "hi"}]})
+    backend._fake_content({"seed": 7, "messages": [{"role": "user", "content": "hi"}]})
+
+
+def test_fake_content_is_deterministic_when_seed_is_provided():
     payload = {
         "seed": 42,
         "messages": [{"role": "user", "content": "same prompt every time"}],

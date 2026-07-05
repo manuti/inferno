@@ -26,7 +26,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 logger = logging.getLogger(__name__)
 
 try:
-    import litert_lm  # type: ignore[import-untyped]
+    import litert_lm  # type: ignore[import-not-found]
 except ImportError:
     litert_lm = None  # type: ignore[assignment]
 
@@ -271,6 +271,7 @@ def _run_inference_sync(messages: list[dict[str, Any]], stream: bool) -> Any:
     _prepare_conversation_sync(messages)
 
     raw_content = messages[-1].get("content", "") if messages else ""
+    final_content: Any
     if isinstance(raw_content, list):
         # Multimodal: send_message expects {"role": "user", "content": [...]}
         final_content = {"role": "user", "content": _convert_openai_to_litert_content(raw_content)}

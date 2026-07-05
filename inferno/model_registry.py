@@ -14,10 +14,11 @@ from __future__ import annotations
 import dataclasses
 import json
 import logging
-import os
 import re
 from pathlib import Path
 from typing import Any
+
+from ._jsonio import atomic_write_json
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ VALID_MODEL_EXTENSIONS = (".gguf", ".litertlm")
 
 MODELS_STATE_VERSION = 1
 
-DEFAULT_MODEL_CHAT_SETTINGS = {
+DEFAULT_MODEL_CHAT_SETTINGS: dict[str, Any] = {
     "temperature": 0.7,
     "top_p": 0.8,
     "top_k": 20,
@@ -43,7 +44,7 @@ DEFAULT_MODEL_CHAT_SETTINGS = {
     "cache_prompt": True,
 }
 
-DEFAULT_MODEL_VISION_SETTINGS = {
+DEFAULT_MODEL_VISION_SETTINGS: dict[str, Any] = {
     "enabled": False,
     "projector_mode": "default",
     "projector_filename": None,
@@ -285,6 +286,16 @@ def build_model_capabilities(filename: str | None) -> dict[str, Any]:
 
 
 def apply_model_chat_defaults(payload: dict[str, Any], *, active_model_filename: str | None) -> dict[str, Any]:
+    """Per-request companion to the launch-time chat_template_kwargs baseline.
+
+    launch_config.build_llama_server_args sets a server-wide default that
+    disables thinking, but that default only applies when a request omits
+    chat_template_kwargs entirely — a request that sends its own
+    chat_template_kwargs replaces the baseline. For Qwen3.5-A3B (where thinking
+    must stay off) this re-injects enable_thinking=False into the request's own
+    chat_template_kwargs, unless the caller has explicitly set enable_thinking.
+    Other model families are left to the launch-time baseline.
+    """
     if not is_qwen35_a3b_filename(active_model_filename):
         return payload
 
@@ -322,24 +333,6 @@ def _is_discoverable_local_model_filename(filename: str) -> bool:
     if stem.startswith("mmproj") or "mmproj" in stem:
         return False
     return True
-
-
-# ---------------------------------------------------------------------------
-# Atomic write utility
-# ---------------------------------------------------------------------------
-
-
-def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        import tempfile
-
-        fd, tmp_name = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(json.dumps(payload))
-        os.replace(tmp_name, path)
-    except OSError:
-        logger.warning("Could not persist JSON state to %s", path, exc_info=True)
 
 
 # ---------------------------------------------------------------------------
@@ -550,13 +543,13 @@ def ensure_models_state(store: ModelStoreConfig) -> dict[str, Any]:
         default_filename = str(default_model.get("filename") or "")
         if default_filename in store.known_default_filenames and model_file_present(store.models_dir, default_filename):
             normalized["default_model_downloaded_once"] = True
-    _atomic_write_json(store.state_path, normalized)
+    atomic_write_json(store.state_path, normalized)
     return normalized
 
 
 def save_models_state(store: ModelStoreConfig, state: dict[str, Any]) -> dict[str, Any]:
     normalized = _normalize_models_state(store, state)
-    _atomic_write_json(store.state_path, normalized)
+    atomic_write_json(store.state_path, normalized)
     return normalized
 
 

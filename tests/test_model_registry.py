@@ -496,6 +496,49 @@ def test_delete_model_not_found(store):
     assert reason == "model_not_found"
 
 
+def test_delete_model_symlink_outside_models_dir_preserves_target(store, tmp_path):
+    """A model entry that is a symlink pointing outside models_dir must never
+    delete the external target — only the link itself is removed."""
+    secret = tmp_path / "secret.txt"
+    secret.write_text("important data")
+    (store.models_dir / "evil.gguf").symlink_to(secret)
+
+    # discover_local_model_filenames registers the symlinked file as a model.
+    state = ensure_models_state(store)
+    target = next(m for m in state["models"] if m["filename"] == "evil.gguf")
+
+    ok, reason, deleted_file, freed, _ = delete_model(store, model_id=target["id"])
+
+    assert ok is True
+    assert reason == "deleted"
+    # The dangling link is gone, but the external target survives untouched.
+    assert not (store.models_dir / "evil.gguf").exists()
+    assert secret.exists()
+    assert secret.read_text() == "important data"
+    # No bytes are credited as freed since the real file was not deleted.
+    assert freed == 0
+    assert deleted_file is True
+
+
+def test_delete_model_symlink_inside_models_dir_deletes_target(store, tmp_path):
+    """A symlink whose target is inside models_dir still has its target
+    deleted (behavior preserved for in-scope links)."""
+    real = store.models_dir / "real-weights.bin"
+    real.write_bytes(b"weights")
+    (store.models_dir / "linked.gguf").symlink_to(real)
+
+    state = ensure_models_state(store)
+    target = next(m for m in state["models"] if m["filename"] == "linked.gguf")
+
+    ok, reason, deleted_file, freed, _ = delete_model(store, model_id=target["id"])
+
+    assert ok is True
+    assert deleted_file is True
+    assert not (store.models_dir / "linked.gguf").exists()
+    assert not real.exists()
+    assert freed == len(b"weights")
+
+
 def test_update_model_settings_persists(store):
     ensure_models_state(store)
     ok, reason, updated = update_model_settings(

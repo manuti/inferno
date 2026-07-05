@@ -16,6 +16,7 @@ from inferno.model_registry import (
     ModelStoreConfig,
     model_format_for_filename,
     validate_model_url,
+    validate_model_url_format,
     _has_valid_model_extension,
     _sanitize_filename,
     _slugify_id,
@@ -144,6 +145,14 @@ def test_validate_model_url_litertlm():
     ok, reason, name = validate_model_url("https://example.com/model.litertlm")
     assert ok is True
     assert name == "model.litertlm"
+
+
+def test_validate_model_url_alias_points_to_format_validator():
+    """The legacy name is a backward-compatible alias for the renamed function."""
+    assert validate_model_url is validate_model_url_format
+    ok, _reason, name = validate_model_url_format("https://example.com/model.gguf")
+    assert ok is True
+    assert name == "model.gguf"
 
 
 # -- Filename / ID utilities --

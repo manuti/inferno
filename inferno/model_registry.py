@@ -99,7 +99,17 @@ def _has_valid_model_extension(filename: str) -> bool:
     return any(lower.endswith(ext) for ext in VALID_MODEL_EXTENSIONS)
 
 
-def validate_model_url(source_url: str) -> tuple[bool, str, str]:
+def validate_model_url_format(source_url: str) -> tuple[bool, str, str]:
+    """Validate the *format* of a model source URL and derive a safe filename.
+
+    This checks only that the URL is https and its basename has a supported
+    model extension, then returns a sanitized filename. It is **not** a security
+    boundary: it does not resolve the host or defend against SSRF (private /
+    loopback / link-local targets). Any such protection must live in the caller
+    that actually performs the download — Inferno does no network probing.
+
+    Returns ``(ok, reason, safe_filename)``.
+    """
     from urllib.parse import unquote, urlparse
 
     parsed = urlparse(source_url.strip())
@@ -114,6 +124,11 @@ def validate_model_url(source_url: str) -> tuple[bool, str, str]:
     if not _has_valid_model_extension(safe_name):
         safe_name = f"{Path(safe_name).stem}.gguf"
     return True, "", safe_name
+
+
+# Backward-compatible alias. The old name implied a security boundary it never
+# was; prefer validate_model_url_format. Kept so existing callers keep working.
+validate_model_url = validate_model_url_format
 
 
 # ---------------------------------------------------------------------------
@@ -579,7 +594,7 @@ def update_model_settings(
 
 
 def register_model_url(store: ModelStoreConfig, source_url: str, alias: str | None = None) -> tuple[bool, str, dict[str, Any] | None]:
-    ok, reason, filename = validate_model_url(source_url)
+    ok, reason, filename = validate_model_url_format(source_url)
     if not ok:
         return False, reason, None
 
@@ -744,7 +759,20 @@ def any_model_ready(store: ModelStoreConfig) -> bool:
 
 
 def download_default_projector_for_model(store: ModelStoreConfig, model_id: str) -> tuple[bool, str, str | None]:
-    """Download the default vision projector for a model from HuggingFace."""
+    """Download the default vision projector for a model from HuggingFace.
+
+    Trust model / invariant: the target HuggingFace repo is chosen **only** by
+    the curated, in-code rules in ``model_families`` (matched against the
+    model filename / source URL). That mapping is never driven by config or
+    user input, so the set of reachable repos is fixed at review time. Given
+    that, the downloaded artifact is written straight to the models dir without
+    checksum verification.
+
+    If repo selection is ever made config- or user-driven, this becomes a
+    remote-fetch-of-attacker-influenced-URL path and MUST gain integrity
+    verification (pin expected file hashes or HF revision SHAs) before the
+    downloaded blob is placed next to the model and loaded as ``--mmproj``.
+    """
     import httpx
 
     from .model_families import default_projector_candidates_for_model, projector_repo_for_model

@@ -67,7 +67,7 @@ class LlamaCppRepository:
             payload.pop("system_prompt", None)
 
         if bool(payload.get("stream")):
-            stream_timeout = httpx.Timeout(connect=5.0, read=None, write=60.0, pool=60.0)
+            stream_timeout = httpx.Timeout(connect=5.0, read=_proxy_read_timeout(), write=60.0, pool=60.0)
             client = httpx.AsyncClient(timeout=stream_timeout)
             try:
                 upstream_request = client.build_request(
@@ -112,7 +112,7 @@ class LlamaCppRepository:
                 stream=_forward_stream(),
             )
 
-        timeout = httpx.Timeout(connect=5.0, read=None, write=60.0, pool=60.0)
+        timeout = httpx.Timeout(connect=5.0, read=_proxy_read_timeout(), write=60.0, pool=60.0)
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 upstream = await client.post(target_url, json=payload, headers=forward_headers)
@@ -210,11 +210,11 @@ def _fake_content(payload: dict[str, Any]) -> str:
     last_user = _extract_last_user_text(payload)
     if not last_user:
         last_user = "hello from the starch dimension"
+    # Route both seeded and unseeded replies through a local Random so the
+    # determinism path is consistent: an explicit seed is reproducible, while
+    # seed=None seeds from OS entropy (still non-deterministic).
     seed = _coerce_seed(payload.get("seed"))
-    if seed is None:
-        reply = random.choice(FAKE_PARODY_REPLIES)
-    else:
-        reply = random.Random(seed).choice(FAKE_PARODY_REPLIES)
+    reply = random.Random(seed).choice(FAKE_PARODY_REPLIES)
     return (
         "[fake-llama.cpp] "
         f"{reply} "
@@ -356,3 +356,22 @@ def _safe_delay_ms(raw: str | None, default: int) -> int:
     except ValueError:
         return default
     return max(0, min(value, 60_000))
+
+
+def _proxy_read_timeout() -> float | None:
+    """Read the upstream-proxy read timeout (seconds) from the environment.
+
+    Defaults to ``None`` (unbounded) to preserve the historical behavior: on
+    slow devices a single non-streamed completion can legitimately take minutes
+    with no bytes on the wire, so a fixed cap would abort valid inference.
+    Operators who want a safety bound against a genuinely hung upstream can set
+    ``POTATO_LLAMA_PROXY_READ_TIMEOUT_S`` to a positive number of seconds.
+    """
+    raw = os.getenv("POTATO_LLAMA_PROXY_READ_TIMEOUT_S", "").strip()
+    if not raw:
+        return None
+    try:
+        value = float(raw)
+    except ValueError:
+        return None
+    return value if value > 0 else None

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from inferno.launch_config import build_llama_server_args
 

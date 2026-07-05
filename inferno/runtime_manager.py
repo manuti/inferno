@@ -21,6 +21,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from ._jsonio import atomic_write_json
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -201,24 +203,6 @@ def compute_model_loading_progress(
 
 
 # ---------------------------------------------------------------------------
-# Atomic write utility
-# ---------------------------------------------------------------------------
-
-
-def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        import tempfile
-
-        fd, tmp_name = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(json.dumps(payload))
-        os.replace(tmp_name, path)
-    except OSError:
-        logger.warning("Could not persist JSON state to %s", path, exc_info=True)
-
-
-# ---------------------------------------------------------------------------
 # Slot discovery
 # ---------------------------------------------------------------------------
 
@@ -286,7 +270,7 @@ def write_llama_runtime_bundle_marker(install_dir: Path, bundle: dict[str, Any])
         "llama_cpp_commit": bundle.get("llama_cpp_commit") or bundle.get("commit"),
         "switched_at_unix": int(time.time()),
     }
-    _atomic_write_json(install_dir / LLAMA_RUNTIME_BUNDLE_MARKER_FILENAME, payload)
+    atomic_write_json(install_dir / LLAMA_RUNTIME_BUNDLE_MARKER_FILENAME, payload)
     return payload
 
 
@@ -514,7 +498,7 @@ def write_llama_runtime_settings(
         "power_calibration": power_calibration if power_calibration is not None else current.get("power_calibration", {}),
         "updated_at_unix": int(time.time()),
     }
-    _atomic_write_json(settings_path, payload)
+    atomic_write_json(settings_path, payload)
     return payload
 
 

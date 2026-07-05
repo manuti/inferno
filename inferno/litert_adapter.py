@@ -8,6 +8,19 @@ Conversation persistence: a single Conversation is kept alive across requests
 so that the KV cache is reused for multi-turn chat (matching the Gallery
 pattern). The conversation is reset only when the incoming message history
 diverges from what we've already processed.
+
+Single-session by design
+------------------------
+There is exactly one process-global conversation, guarded by a single
+``asyncio.Lock`` that serializes requests. This suits the intended use — one
+person on one device testing a model — and keeps the KV cache warm for that
+session. It is deliberately NOT multi-tenant: if two independent clients
+interleave requests, each will look like a diverged history to the other and
+repeatedly trigger a conversation reset + replay, degrading throughput (though
+never corrupting a single request, which the lock still protects). Drive this
+adapter from one client at a time. Multi-session isolation (keying
+conversations by a session id) is intentionally out of scope for a
+single-device test harness.
 """
 
 from __future__ import annotations

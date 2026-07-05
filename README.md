@@ -44,7 +44,7 @@ dicts, and callbacks — never a FastAPI `app.state`.
 | --- | --- |
 | **Chat backends** | `LlamaCppRepository` (real llama.cpp HTTP proxy), `FakeLlamaRepository` (dev/test), `ChatRepositoryManager` (dispatch), `BackendResponse`, `BackendProxyError` |
 | **Model families** | `is_qwen35_filename`, `is_gemma4_filename`, `projector_repo_for_model`, `recommended_runtime_for_model`, `default_projector_candidates_for_model`, `build_model_projector_status` |
-| **Model registry** | `ModelStoreConfig`, `ensure_models_state`, `save_models_state`, `register_model_url`, `update_model_settings`, `delete_model`, `validate_model_url`, `normalize_model_settings`, `build_model_capabilities` |
+| **Model registry** | `ModelStoreConfig`, `ensure_models_state`, `save_models_state`, `register_model_url`, `update_model_settings`, `delete_model`, `validate_model_url_format`, `normalize_model_settings`, `build_model_capabilities` |
 | **Runtime manager** | `RuntimeStoreConfig`, `classify_runtime_device`, `discover_runtime_slots`, `check_runtime_device_compatibility`, `install_llama_runtime_bundle`, `ensure_compatible_runtime`, `build_llama_runtime_status` |
 | **Launch config** | `build_llama_server_args` (pure function → llama-server CLI argv) |
 | **Orchestrator** | `run_inference_tick`, `refresh_readiness`, `check_health`, `restart_inference_process`, `resolve_mmproj_for_launch`, `prepare_activation_runtime` |

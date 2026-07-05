@@ -30,7 +30,7 @@ Inferno (this package) provides:
     - build_llama_server_args      pure function to build CLI args
     - ModelStoreConfig             filesystem/policy config for registry ops
     - Model registry functions     ensure/save/register/delete/update state
-    - Format handling              model_format_for_filename, validate_model_url
+    - Format handling              model_format_for_filename, validate_model_url_format
     - Settings normalization       normalize_model_settings, build_model_capabilities
     - Projector management         build_model_projector_status, download, candidates
     - litert_adapter               standalone FastAPI app (inferno.litert_adapter:app)
@@ -135,6 +135,7 @@ from .model_registry import (
     save_models_state,
     update_model_settings,
     validate_model_url,
+    validate_model_url_format,
 )
 
 __all__ = [
@@ -209,6 +210,7 @@ __all__ = [
     "save_models_state",
     "update_model_settings",
     "validate_model_url",
+    "validate_model_url_format",
     "check_health",
     "empty_readiness_state",
     "empty_runtime_switch_state",

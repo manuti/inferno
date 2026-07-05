@@ -651,6 +651,10 @@ def delete_model(store: ModelStoreConfig, *, model_id: str) -> tuple[bool, str, 
             model_file_path(store.models_dir, filename),
             model_file_path(store.models_dir, filename + ".part"),
         )
+        try:
+            models_dir_resolved = store.models_dir.resolve(strict=False)
+        except OSError:
+            models_dir_resolved = store.models_dir
         for candidate_path in candidate_paths:
             candidate_is_symlink = False
             try:
@@ -663,13 +667,27 @@ def delete_model(store: ModelStoreConfig, *, model_id: str) -> tuple[bool, str, 
             target_path: Path | None = None
             file_size = 0
             if candidate_is_symlink:
+                # Only follow the symlink to its target when the target stays
+                # inside models_dir. A model entry whose file is a symlink
+                # pointing outside models_dir must never delete an arbitrary
+                # file — in that case remove only the link itself.
                 try:
-                    target_path = candidate_path.resolve(strict=False)
-                    if target_path.exists():
-                        file_size = max(0, target_path.stat().st_size)
+                    resolved_target = candidate_path.resolve(strict=False)
                 except OSError:
-                    target_path = None
-                    file_size = 0
+                    resolved_target = None
+                if resolved_target is not None and resolved_target.is_relative_to(models_dir_resolved):
+                    target_path = resolved_target
+                    try:
+                        if target_path.exists():
+                            file_size = max(0, target_path.stat().st_size)
+                    except OSError:
+                        file_size = 0
+                elif resolved_target is not None:
+                    logger.warning(
+                        "Refusing to follow model symlink %s pointing outside models_dir (-> %s); removing link only",
+                        candidate_path,
+                        resolved_target,
+                    )
             else:
                 try:
                     file_size = max(0, candidate_path.stat().st_size)

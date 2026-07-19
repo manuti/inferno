@@ -237,6 +237,7 @@ def test_chat_completion_returns_500_on_engine_error(_mock_litert_lm, client):
     )
     assert response.status_code == 500
     assert "error" in response.json()
+    assert response.json()["error"]["code"] == "inference_failed"
 
 
 def test_chat_completion_returns_503_when_no_engine(_mock_litert_lm, client):
@@ -246,6 +247,7 @@ def test_chat_completion_returns_503_when_no_engine(_mock_litert_lm, client):
         json={"messages": [{"role": "user", "content": "Hi"}]},
     )
     assert response.status_code == 503
+    assert response.json()["error"]["code"] == "litert_engine_not_loaded"
 
 
 def test_chat_completion_rejects_empty_messages(client):
@@ -254,6 +256,17 @@ def test_chat_completion_rejects_empty_messages(client):
         json={"messages": []},
     )
     assert response.status_code == 400
+    assert response.json()["error"]["code"] == "messages_required"
+
+
+def test_chat_completion_rejects_invalid_json(client):
+    response = client.post(
+        "/v1/chat/completions",
+        content=b"not json at all",
+        headers={"content-type": "application/json"},
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "invalid_json"
 
 
 # -- LiteRT vision support tests ------------------------------------------------
@@ -433,6 +446,7 @@ def test_multimodal_message_rejected_when_vision_disabled(_mock_litert_lm, clien
     )
     assert response.status_code == 400
     assert "vision" in response.json()["error"]["message"].lower()
+    assert response.json()["error"]["code"] == "vision_not_supported"
 
 
 def test_multimodal_message_accepted_when_vision_enabled(_mock_litert_lm, client):

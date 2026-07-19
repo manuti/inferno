@@ -287,7 +287,7 @@ async def chat_completions(request: Request):
     if _engine is None:
         return JSONResponse(
             status_code=503,
-            content={"error": {"message": "LiteRT engine not loaded", "type": "server_error"}},
+            content={"error": {"message": "LiteRT engine not loaded", "type": "server_error", "code": "litert_engine_not_loaded"}},
         )
 
     try:
@@ -295,21 +295,21 @@ async def chat_completions(request: Request):
     except Exception:
         return JSONResponse(
             status_code=400,
-            content={"error": {"message": "Invalid JSON", "type": "invalid_request_error"}},
+            content={"error": {"message": "Invalid JSON", "type": "invalid_request_error", "code": "invalid_json"}},
         )
 
     messages = payload.get("messages", [])
     if not messages:
         return JSONResponse(
             status_code=400,
-            content={"error": {"message": "messages required", "type": "invalid_request_error"}},
+            content={"error": {"message": "messages required", "type": "invalid_request_error", "code": "messages_required"}},
         )
 
     # Reject multimodal input when vision is not available
     if not _vision_enabled and _has_image_content(messages):
         return JSONResponse(
             status_code=400,
-            content={"error": {"message": "Vision input is not supported by this model/runtime configuration", "type": "invalid_request_error"}},
+            content={"error": {"message": "Vision input is not supported by this model/runtime configuration", "type": "invalid_request_error", "code": "vision_not_supported"}},
         )
 
     stream = payload.get("stream", False)
@@ -434,7 +434,7 @@ async def chat_completions(request: Request):
             logger.exception("Inference error")
             return JSONResponse(
                 status_code=500,
-                content={"error": {"message": "Inference failed", "type": "server_error"}},
+                content={"error": {"message": "Inference failed", "type": "server_error", "code": "inference_failed"}},
             )
 
 
